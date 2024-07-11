@@ -11,14 +11,16 @@ TODO:
 
 import pathlib
 
-def get_page_number_from_string(s):
-    return int(s.split(' ')[2].split()[0])
+
+def get_location_number_from_string(s):
+    return int(s.split(" ")[4].split("-")[0].split("\n")[0])
+
 
 current_directory = pathlib.Path().resolve()
-file_path = '/Users/hgd/Desktop/My Clippings.txt'
+file_path = "/Users/hgd/Desktop/My Clippings.txt"
 
 if __name__ == "__main__":
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         data = file.read()
 
     sections = data.strip().split("==========")
@@ -30,31 +32,53 @@ if __name__ == "__main__":
         if len(lines) >= 4:
             title_and_author = lines[0].strip()
             annotation_type = lines[1].split(" ")[2]
-            annotation = lines[-1]
+
+            # Using "3:" because the first 3 lines are the title, author, and date, and multiple lines in a note will be separated by an empty line
+            annotation = lines[3:]
+            annotation = ["\n>\n> " if i == "" else i for i in annotation]
+            annotation = "".join(annotation)
 
             page_range = lines[1].split(" ")[5]
             pages = page_range.split("-")
-            location = lines[1].split(" ")[8]
+            location_range = lines[1].split(" ")[8]
+            locations = location_range.split("-")
 
-            if (len(pages) > 1 and (int(pages[0]) == int(pages[1]))):
+            if len(pages) > 1 and (int(pages[0]) == int(pages[1])):
                 page_range = pages[0]
-            
-            # If this is a note then append it the associated annotation
-            output = f"> Page {page_range}\n>\n> {annotation}\n"
-            if (annotation_type.lower() == "note"):
+            elif len(pages) == 1:
+                page_range = pages[0]
+            else:
+                page_range = f"{pages[0]}-{pages[1]}"
+
+            if len(locations) > 1 and (int(locations[0]) == int(locations[1])):
+                location_range = locations[0]
+            elif len(locations) == 1:
+                location_range = locations[0]
+            else:
+                location_range = f"{locations[0]}-{locations[1]}"
+
+            # If this is a note then append it to the associated annotation collection
+            output = (
+                f"> Pg. {page_range}, Location {location_range}\n> \n> {annotation}\n\n"
+            )
+            if annotation_type.lower() == "note":
                 notes.append(output)
             else:
                 highlights.append(output)
 
     # Sort the notes and highlight arrays by page number
-    sorted_highlights = sorted(highlights, key=get_page_number_from_string)
-    sorted_notes = sorted(notes, key=get_page_number_from_string)
+    sorted_highlights = sorted(highlights, key=get_location_number_from_string)
+    sorted_notes = sorted(notes, key=get_location_number_from_string)
+    all = sorted(highlights + notes, key=get_location_number_from_string)
 
-    with open(f"{current_directory}/notes.md", 'w') as file:
-        file.write("# Highlights\n\n")
-        for annotation in sorted_highlights:
-            file.write(annotation + '\n')
+    with open(f"{current_directory}/notes.md", "w") as file:
+        file.write("## Highlights\n\n")
+        # for annotation in sorted_highlights:
+        #     file.write(annotation)
 
-        file.write("# Notes\n\n")
-        for annotation in sorted_notes:
-            file.write(annotation + '\n')
+        # file.write("## Notes\n\n")
+        # for annotation in sorted_notes:
+        #     file.write(annotation)
+
+        for annotation in all:
+            file.write(annotation)
