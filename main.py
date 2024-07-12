@@ -7,13 +7,17 @@ TODO:
 5) Build a front end
 6) Make sure all the notes are grouped together for the book they correspond to
 7) Turn bulletpoints into bullet point lists
+
+This is how we should transform this program:
+
+This program should read in each annotation. An annotation belongs to a book and has certain meta content associated with it, such as a timestamp, location, page number, etc. We then store each annotation in a hash table (one hash table per book) where the key is the location. Each time we find a new annotation with a location that overlaps with an existing annotation, we append this annotation to the running list of annotations for that location. Only annotations with overlapping locations are considered conflicts and need to be reviewed. We then only keep the annotation with with the most recent timestamp. It is assumed that the last edit made by the user to the annotation will always be the most correct version—-if we want to do this programatically without the use of an LLM. 
 """
 
 import pathlib
 
 
 def get_location_number_from_string(s):
-    return int(s.split(" ")[4].split("-")[0].split("\n")[0])
+    return int(s.split(" ")[4].split("-")[0].split("**\n")[0])
 
 
 current_directory = pathlib.Path().resolve()
@@ -58,9 +62,7 @@ if __name__ == "__main__":
                 location_range = f"{locations[0]}-{locations[1]}"
 
             # If this is a note then append it to the associated annotation collection
-            output = (
-                f"> Pg. {page_range}, Location {location_range}\n> \n> {annotation}\n\n"
-            )
+            output = f"> **Pg. {page_range}, Location {location_range}**\n> \n> {annotation}\n\n"
             if annotation_type.lower() == "note":
                 notes.append(output)
             else:
