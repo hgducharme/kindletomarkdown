@@ -21,7 +21,7 @@ def get_location_number_from_string(s):
 
 
 current_directory = pathlib.Path().resolve()
-file_path = "/Users/hgd/Desktop/My Clippings.txt"
+file_path = "/Users/hgd/repos/kindletomarkdown/clippings.txt"
 
 if __name__ == "__main__":
     with open(file_path, "r") as file:
