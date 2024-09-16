@@ -75,12 +75,12 @@ if __name__ == "__main__":
 
     with open(f"{current_directory}/notes.md", "w") as file:
         file.write("## Highlights\n\n")
-        # for annotation in sorted_highlights:
-        #     file.write(annotation)
-
-        # file.write("## Notes\n\n")
-        # for annotation in sorted_notes:
-        #     file.write(annotation)
-
-        for annotation in all:
+        for annotation in sorted_highlights:
             file.write(annotation)
+
+        file.write("## Notes\n\n")
+        for annotation in sorted_notes:
+            file.write(annotation)
+
+        # for annotation in all:
+        #     file.write(annotation)
