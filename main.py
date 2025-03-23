@@ -1,16 +1,16 @@
 """
 TODO:
-1) Some how higlights get out of order by page number, I think that's because Kindle organizes them by the datetime that they are created. Organize them by page number, and then by datetime.
-2) If the annotation type is a note, then append the note to the previous section
-3) Sanitize the input file
-4) Write and return a markdown file, or just spit out markdown
-5) Build a front end
-6) Make sure all the notes are grouped together for the book they correspond to
-7) Turn bulletpoints into bullet point lists
+- Some how higlights get out of order by page number, I think that's because Kindle organizes them by the datetime that they are created. Organize them by page number, and then by datetime.
+- If the annotation type is a note, then append the note to the previous section
+- Sanitize the input file
+- Build a front end
+- Make sure all the notes are grouped together for the book they correspond to
+- Turn bulletpoints into bullet point lists
+- For each note, find the associated highlight and have them together in one string
 
 This is how we should transform this program:
 
-This program should read in each annotation. An annotation belongs to a book and has certain meta content associated with it, such as a timestamp, location, page number, etc. We then store each annotation in a hash table (one hash table per book) where the key is the location. Each time we find a new annotation with a location that overlaps with an existing annotation, we append this annotation to the running list of annotations for that location. Only annotations with overlapping locations are considered conflicts and need to be reviewed. We then only keep the annotation with with the most recent timestamp. It is assumed that the last edit made by the user to the annotation will always be the most correct version—-if we want to do this programatically without the use of an LLM. 
+This program should read in each annotation. An annotation belongs to a book and has certain meta content associated with it, such as a timestamp, location, page number, etc. We then store each annotation in a hash table (one hash table per book) where the key is the location. Each time we find a new annotation with a location that overlaps with an existing annotation, we append this annotation to the running list of annotations for that location. Only annotations with overlapping locations are considered conflicts and need to be reviewed. We then only keep the annotation with with the most recent timestamp. It is assumed that the last edit made by the user to the annotation will always be the most correct version—-if we want to do this programatically without the use of an LLM.
 """
 
 import pathlib
@@ -21,7 +21,7 @@ def get_location_number_from_string(s):
 
 
 current_directory = pathlib.Path().resolve()
-file_path = "/Users/hgd/repos/kindletomarkdown/clippings.txt"
+file_path = "/Users/hgd/Desktop/Clippings/russell_cleaned.txt"
 
 if __name__ == "__main__":
     with open(file_path, "r") as file:
@@ -61,6 +61,7 @@ if __name__ == "__main__":
             else:
                 location_range = f"{locations[0]}-{locations[1]}"
 
+            # TODO: We need to find a better way to store the annotation. We need a way to store with locations as keys, and a way to be able to find the location of a highlight that is associated with the location of a note.
             # If this is a note then append it to the associated annotation collection
             output = f"> **Pg. {page_range}, Location {location_range}**\n> \n> {annotation}\n\n"
             if annotation_type.lower() == "note":
