@@ -14,66 +14,172 @@ This program should read in each annotation. An annotation belongs to a book and
 """
 
 import pathlib
+from enum import StrEnum
+
+
+class AnnotationType(StrEnum):
+    HIGHLIGHT = "Highlight"
+    NOTE = "Note"
+
+
+class Annotation:
+    def __init__(
+        self,
+        type: AnnotationType,
+        page_start: int,
+        page_end: int,
+        location_start: int,
+        location_end: int,
+        text: str,
+    ):
+        self.type = type
+        self.page_start = page_start
+        self.page_end = page_end
+        self.location_start = location_start
+        self.location_end = location_end
+        self.text = text
+
+    def location_range(self) -> str:
+        if (self.location_end == None) or (self.location_start == self.location_end):
+            return f"{self.location_start}"
+        else:
+            return f"{self.location_start}-{self.location_end}"
+
+    def page_range(self) -> str:
+        if (self.page_end == None) or (self.page_start == self.page_end):
+            return f"{self.page_start}"
+        else:
+            return f"{self.page_start}-{self.page_end}"
+
+
+class Book:
+    def __init__(self, title_and_author: str):
+        self.title_and_author = title_and_author
+        self.notes = []
+        self.highlights = []
+
+    def append(self, annotation: Annotation) -> None:
+        if annotation.type == AnnotationType.NOTE:
+            self.notes.append(annotation)
+        elif annotation.type == AnnotationType.HIGHLIGHT:
+            self.highlights.append(annotation)
+        else:
+            raise Exception(f"Unsupported annotation type: '{annotation.type}'")
 
 
 def get_location_number_from_string(s):
     return int(s.split(" ")[4].split("-")[0].split("**\n")[0])
 
 
-current_directory = pathlib.Path().resolve()
-file_path = "/Users/hgd/Desktop/Clippings/russell_cleaned.txt"
+def get_location_number_from_annotation(a: Annotation) -> int:
+    return a.location_start
 
-if __name__ == "__main__":
-    with open(file_path, "r") as file:
+
+def main(input_file_path):
+    with open(input_file_path, "r") as file:
         data = file.read()
 
-    sections = data.strip().split("==========")
+    books = {}
     notes = []
     highlights = []
-
+    sections = data.strip().split("==========")
     for section in sections:
         lines = section.strip().split("\n")
-        if len(lines) >= 4:
-            title_and_author = lines[0].strip()
-            annotation_type = lines[1].split(" ")[2]
 
-            # Using "3:" because the first 3 lines are the title, author, and date, and multiple lines in a note will be separated by an empty line
-            annotation = lines[3:]
-            annotation = ["\n>\n> " if i == "" else i for i in annotation]
-            annotation = "".join(annotation)
+        # In order for a section to be valid, it must have the following 4 lines:
+        # 1) Book title and author
+        # 2) Annotation metadata
+        # 3) An empty line
+        # 4) The annotation itself
+        if len(lines) < 4:
+            continue
 
-            page_range = lines[1].split(" ")[5]
-            pages = page_range.split("-")
-            location_range = lines[1].split(" ")[8]
-            locations = location_range.split("-")
+        ###
+        # Parse the text from the section
+        ###
 
-            if len(pages) > 1 and (int(pages[0]) == int(pages[1])):
-                page_range = pages[0]
-            elif len(pages) == 1:
-                page_range = pages[0]
-            else:
-                page_range = f"{pages[0]}-{pages[1]}"
+        title_and_author = lines[0].strip()
+        annotation_type = lines[1].split(" ")[2]
 
-            if len(locations) > 1 and (int(locations[0]) == int(locations[1])):
-                location_range = locations[0]
-            elif len(locations) == 1:
-                location_range = locations[0]
-            else:
-                location_range = f"{locations[0]}-{locations[1]}"
+        # Using "3:" because the first 3 lines are the title, author, and date, and multiple lines in a note will be separated by an empty line
+        annotation = lines[3:]
+        annotation = ["\n>\n> " if i == "" else i for i in annotation]
+        annotation = "".join(annotation)
 
-            # TODO: We need to find a better way to store the annotation. We need a way to store with locations as keys, and a way to be able to find the location of a highlight that is associated with the location of a note.
-            # If this is a note then append it to the associated annotation collection
-            output = f"> **Pg. {page_range}, Location {location_range}**\n> \n> {annotation}\n\n"
-            if annotation_type.lower() == "note":
-                notes.append(output)
-            else:
-                highlights.append(output)
+        page_range = lines[1].split(" ")[5]
+        pages = page_range.split("-")
+        page_start = int(pages[0])
+        page_end = None if (len(pages) == 1) else int(pages[1])
+
+        location_range = lines[1].split(" ")[8]
+        locations = location_range.split("-")
+        location_start = int(locations[0])
+        location_end = None if (len(locations) == 1) else int(locations[1])
+
+        # Convert the annotation type string to an enum value
+        if annotation_type.lower() == "highlight":
+            annotation_type = AnnotationType.HIGHLIGHT
+        elif annotation_type.lower() == "note":
+            annotation_type = AnnotationType.NOTE
+        else:
+            raise Exception(f"Invalid annotation type: '{annotation_type}'")
+
+        ###
+        # Create classes and store the parsed text
+        ###
+
+        # Store all the parsed data
+        a = Annotation(
+            annotation_type,
+            page_start,
+            page_end,
+            location_start,
+            location_end,
+            annotation,
+        )
+
+        if title_and_author in books.keys():
+            books[title_and_author].append(a)
+        else:
+            book = Book(title_and_author)
+            book.append(a)
+            books[title_and_author] = book
+
+        # Create and store the output string
+        output = f"> **Pg. {a.page_range()}, Location {a.location_range()}**\n> \n> {a.text}\n\n"
+        if a.type == AnnotationType.NOTE:
+            notes.append(output)
+        else:
+            highlights.append(output)
 
     # Sort the notes and highlight arrays by page number
     sorted_highlights = sorted(highlights, key=get_location_number_from_string)
     sorted_notes = sorted(notes, key=get_location_number_from_string)
     all = sorted(highlights + notes, key=get_location_number_from_string)
 
+    ###
+    # Associate notes with their respective highlights
+    ###
+    # TODO: We need to find a better way to store the annotation. We need a way to store with locations as keys, and a way to be able to find the location of a highlight that is associated with the location of a note.
+    # If this is a note then append it to the associated annotation collection
+    # This has to be done after all the sections are read-in. It's possible to come across the note before the associated highlight
+    # Also figure out a way to store highlights with the same starting location. It's possible the start of the highlight exists in the same 150-byte block. How do we determine here which highlight the note goes to? For now just say this one can't find a home and inform the user
+    # Maybe a dict isn't the right way to go bc the starting locations aren't unique. We might have to have two arrays, one array with the starting locations and one with the annotation, with a one to one correspondence. If we find more than one annotation with the same starting location, we just inform the user. Otherwise, we associate the note with the single highlight found.
+    # Read in all the notes and highlights into arrays inside the book class, then sort the arrays, and do the traversing to associate notes with highlights.
+
+    for book in books.values():
+        notes = sorted(book.notes, key=get_location_number_from_annotation)
+        highlights = sorted(book.highlights, key=get_location_number_from_annotation)
+
+        ## TODO: This doesn't correctly handle if there's two highlights with the same location start.
+        for note in notes:
+            note_location = note.location_start
+            for highlight in highlights:
+                highlight_interval = (highlight.location_start, highlight.location_end)
+                # if note_location == highlight.location_start or note_location == highlight.location_end or contained in highlight_interval:
+                #   associate note with highlight
+
+    current_directory = pathlib.Path().resolve()
     with open(f"{current_directory}/notes.md", "w") as file:
         file.write("## Highlights\n\n")
         for annotation in sorted_highlights:
@@ -85,3 +191,8 @@ if __name__ == "__main__":
 
         # for annotation in all:
         #     file.write(annotation)
+
+
+if __name__ == "__main__":
+    input_file_path = "/Users/hgd/Desktop/Clippings/state_cleaned.txt"
+    main(input_file_path)
