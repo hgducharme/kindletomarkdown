@@ -167,17 +167,36 @@ def main(input_file_path):
     # Maybe a dict isn't the right way to go bc the starting locations aren't unique. We might have to have two arrays, one array with the starting locations and one with the annotation, with a one to one correspondence. If we find more than one annotation with the same starting location, we just inform the user. Otherwise, we associate the note with the single highlight found.
     # Read in all the notes and highlights into arrays inside the book class, then sort the arrays, and do the traversing to associate notes with highlights.
 
+    all_notes_and_highlights_associated_together = []
     for book in books.values():
         notes = sorted(book.notes, key=get_location_number_from_annotation)
         highlights = sorted(book.highlights, key=get_location_number_from_annotation)
 
-        ## TODO: This doesn't correctly handle if there's two highlights with the same location start.
+        notes_used = {}
         for note in notes:
             note_location = note.location_start
             for highlight in highlights:
                 highlight_interval = (highlight.location_start, highlight.location_end)
-                # if note_location == highlight.location_start or note_location == highlight.location_end or contained in highlight_interval:
-                #   associate note with highlight
+                if (
+                    (note_location == highlight.location_start)
+                    or (note_location == highlight.location_end)
+                    or (
+                        (note_location > highlight.location_start)
+                        and (note_location < highlight.location_end)
+                    )
+                ):
+                    print(
+                        f"\n\nFound a match! Highlight interval: {highlight_interval}. Note location: {note_location}\nHighlight:  {highlight.text}\nNote: {note.text}"
+                    )
+
+                    if note_location in notes_used.keys():
+                        notes_used[note_location] += 1
+                        print(
+                            f"Potential duplicate!! We have used this note location {notes_used[note_location]} time(s) now"
+                        )
+                    else:
+                        notes_used[note_location] = 1
+                    # TODO: Find a way to associate the note and highlight together. Either in a class, or just combine them into an output string.
 
     current_directory = pathlib.Path().resolve()
     with open(f"{current_directory}/notes.md", "w") as file:
